@@ -32,3 +32,9 @@ Packages:
 - seaborn
 - numpy
 - pandas
+
+## 🚀 Usage
+```
+# Analyze 500 reviews, with DistilBERT model, in debug mode.
+python main.py --num_reviews 500 --model_id 1 --verbose 2
+```
