@@ -15,3 +15,19 @@
 
 ---
 
+## 🔧 Requirements
+
+Install the required Python packages:
+
+```bash
+pip install -r requirements.txt
+
+Packages:
+
+- transformers
+- datasets
+- scikit-learn
+- matplotlib
+- seaborn
+- numpy
+- pandas
