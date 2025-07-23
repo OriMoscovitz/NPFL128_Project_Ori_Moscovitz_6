@@ -53,10 +53,12 @@ python main.py --num_reviews 500 --model_id 1 --verbose 2
 
 ## 📊 Outputs
 Check the `visualizations/` folder after execution for:
-- `Confusion_Matrix.png`
-- `Classification_Report.png`
-- `Help_Distribution.png`
-
+### `Confusion_Matrix.png`
+![Confusion Matrix](visualizations/example/Confusion_Matrix.png)
+### `Classification_Report.png`
+![Classification Report](visualizations/example/Classification_Report.png)
+### `Help_Distribution.png`
+![Helpfulness Distribution](visualizations/example/Help_Distribution.png)
 
 For raw printed outputs, consider redirecting stdout to a file:
 ```
