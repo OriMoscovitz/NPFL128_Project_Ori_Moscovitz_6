@@ -5,9 +5,8 @@
 ---
 
 ## 🎯 The Problem
-This project refers to the challenges discussed in the paper [`Challenges in Sentiment Analysis by Saif M. Mohammad, 2017`](https://ufal.mff.cuni.cz/~hana/teaching/Mohammad2017_Chapter_ChallengesInSentimentAnalysis.pdf). Specifically, it focuses on sentence-level sentiment detection in product reviews using pre-trained transformers, while also evaluating model performance against star ratings and helpfulness metrics.
-
-
+This project refers to the challenges discussed in the paper [`Challenges in Sentiment Analysis by Saif M. Mohammad, 2017`](https://ufal.mff.cuni.cz/~hana/teaching/Mohammad2017_Chapter_ChallengesInSentimentAnalysis.pdf).
+Specifically, it focuses on exploring the correlation between sentiment analysis to star ratings, as well as the impact of sentiment on *helpful vote* votes.
 
 🔍 Scope
 Implemented:
@@ -30,7 +29,6 @@ pip install -r requirements.txt
 ```
 #### 2. Run sentiment analysis:
 ```
-# Analyze 500 reviews, with DistilBERT model, in debug mode.
 python main.py --num_reviews 500 --model_id 1 --verbose 2
 ```
 
