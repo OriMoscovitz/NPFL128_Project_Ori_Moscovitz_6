@@ -179,8 +179,11 @@ class AmazonReviewsSentimentAnalyzer:
             self.init_sentiment_analyzer()
 
         try:
-            # Truncate text if too long to handle token limit
-            text = text[:512]
+            if self.args.model_id == 2:
+                # Truncate text if too long to handle token limit (bertweet)
+                text = text[:128]
+            else:
+                text = text[:512]
             result = self.sentiment_analyzer(text)[0]
 
             mapped_label = LABEL_MAPPING.get(result['label'],
@@ -596,12 +599,15 @@ class AmazonReviewsSentimentAnalyzer:
         """
         tf_logging.set_verbosity_error()
 
+        # load bertweet to reduce running time
         if model_id == 2:
             return pipeline(
                 "sentiment-analysis",
                 model="./models/bertweet",
                 tokenizer="./models/bertweet",
-                truncation=True
+                max_length=128,
+                truncation=True,
+                padding=True
             )
 
         return pipeline(
