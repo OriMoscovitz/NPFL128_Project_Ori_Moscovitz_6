@@ -29,7 +29,7 @@ pip install -r requirements.txt
 ```
 #### 2. Run sentiment analysis:
 ```
-python main.py --num_reviews 500 --model_id 1 --verbose 2
+python3 main.py --num_reviews 500 --model_id 1 --verbose 2
 ```
 
 ### Arguments
@@ -62,7 +62,7 @@ Check the `visualizations/` folder after execution for:
 
 For raw printed outputs, consider redirecting stdout to a file:
 ```
-python main.py --num_reviews 100 --model_id 2 --verbose 2 > sample_output.txt
+python3 main.py --num_reviews 100 --model_id 2 --verbose 2 > sample_output.txt
 ```
 
 ## 📁 Project Structure
