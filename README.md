@@ -12,7 +12,6 @@
 - Analyzes the impact of 'helpful vote' votes for each sentiment.
 - Visualizes helpfulness scores across sentiment categories.
 
----
 
 ## 🔧 Requirements
 
