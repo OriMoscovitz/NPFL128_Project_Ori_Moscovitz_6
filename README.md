@@ -1,2 +1,1 @@
-# NPFL128_project
-Final Project in Course NPFL128
+### 🛍️ Amazon Reviews Sentiment Analyzer
