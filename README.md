@@ -1,37 +1,34 @@
 # Amazon Reviews Sentiment Analyzer 
 <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/Antu_amazon-mp3-store-source.svg" alt="Amazon Logo" width="70"/>  <img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" alt="Hugging Face" width="80"/><img src="https://upload.wikimedia.org/wikipedia/commons/6/67/Numpy-svgrepo-com.svg" alt="NumPy" width="70"/>  <img src="https://upload.wikimedia.org/wikipedia/commons/8/84/Matplotlib_icon.svg" alt="Matplotlib" width="70"/>  <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/Logo-seaborn.png" alt="Seaborn" width="70"/>  <img src="https://upload.wikimedia.org/wikipedia/commons/0/05/Scikit_learn_logo_small.svg" alt="scikit-learn" width="110"/>
 
-#### A Python-based command-line tool that performs sentiment analysis on Amazon product reviews using state-of-the-art transformer models. It fetches real reviews, processes them, applies a sentiment model, and visualizes the results with helpfulness insights.
+#### A Python-based CLI tool for sentiment analysis on Amazon product reviews using state-of-the-art transformer models. It compares predicted sentiment with star ratings to assess correlation, fetching real reviews, processing them, and visualizing results with helpfulness insights.
 ---
-## 📦 Features
 
-- Load real Amazon product reviews using the HuggingFace `datasets` library.
-- Choose from 5 different pre-trained transformer models for sentiment analysis.
-- Automatically maps star ratings to sentiments for evaluation.
-- Generates classification reports and confusion matrices.
-- Analyzes the impact of 'helpful vote' votes for each sentiment.
-- Visualizes helpfulness scores across sentiment categories.
-<br><br>
+## 🎯 The Problem
+This project refers to the challenges discussed in the paper [`Challenges in Sentiment Analysis by Saif M. Mohammad, 2017`](https://ufal.mff.cuni.cz/~hana/teaching/Mohammad2017_Chapter_ChallengesInSentimentAnalysis.pdf). Specifically, it focuses on sentence-level sentiment detection in product reviews using pre-trained transformers, while also evaluating model performance against star ratings and helpfulness metrics.
 
-## 🔧 Requirements
 
-Install the required Python packages:
 
-```bash
+🔍 Scope
+Implemented:
+- CLI tool for analyzing Amazon product reviews
+- Integration with 5 transformer models via Hugging Face to choose from
+- Mapping of ratings to sentiments and evaluate the correlation to the sentiment prediction
+- Helpfulness-based visual insights
+- Confusion matrix and classification report generation and visualization
+
+Future Work:
+- Aspect-based sentiment detection (e.g., food vs. service)
+- Incorporating helpfulness scores as weights in evaluation or model fine-tuning to emphasize more impactful reviews
+- Sarcasm/irony detection
+
+
+## 🏃 How to Run
+#### 1. Install dependencies:
+```
 pip install -r requirements.txt
 ```
-
-Packages:
-- transformers
-- datasets
-- scikit-learn
-- matplotlib
-- seaborn
-- numpy
-- pandas
-<br><br>
-
-## 🚀 Usage
+#### 2. Run sentiment analysis:
 ```
 # Analyze 500 reviews, with DistilBERT model, in debug mode.
 python main.py --num_reviews 500 --model_id 1 --verbose 2
@@ -56,13 +53,17 @@ python main.py --num_reviews 500 --model_id 1 --verbose 2
 | 3 | [nlptown/bert-base-multilingual-uncased-sentiment (Multilingual BERT)](https://huggingface.co/nlptown/bert-base-multilingual-uncased-sentiment) |
 | 4 | [siebert/sentiment-roberta-large-english (SiEBERT)](https://huggingface.co/siebert/sentiment-roberta-large-english) |
 
-
 ## 📊 Outputs
-- Classification Report
-- Confusion Matrix
-- Helpfulness Score Distribution
-- Saved Visualizations under ./visualizations/
+Check the `visualizations/` folder after execution for:
+- `Confusion_Matrix.png`
+- `Classification_Report.png`
+- `Help_Distribution.png`
 
+
+For raw printed outputs, consider redirecting stdout to a file:
+```
+python main.py --num_reviews 100 --model_id 2 --verbose 2 > sample_output.txt
+```
 
 ## 📁 Project Structure
 ```
