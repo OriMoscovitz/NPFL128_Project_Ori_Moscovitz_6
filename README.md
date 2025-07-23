@@ -1,4 +1,5 @@
-# Amazon Reviews Sentiment Analyzer <img src="[https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg](https://commons.wikimedia.org/wiki/File:Amazon_Prime_logo_(2023).png)" alt="Amazon Logo" width="100"/>
+# Amazon Reviews Sentiment Analyzer ![Amazon MP3 Icon](https://upload.wikimedia.org/wikipedia/commons/1/1e/Antu_amazon-mp3-store-source.svg)
+
 
 ### A Python-based command-line tool that performs sentiment analysis on Amazon product reviews using state-of-the-art transformer models. It fetches real reviews, processes them, applies a sentiment model, and visualizes the results with helpfulness insights.
 -
