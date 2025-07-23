@@ -1,50 +1,66 @@
-from datasets import load_dataset
-from typing import Any, Dict, List
-from utils import print_formatted_dictionaries
-import pandas as pd
-from transformers import pipeline
-from utils import RATING_TO_SENTIMENT, LABELS
-from sklearn.metrics import classification_report, confusion_matrix
+# Disable tokenizer parallelism warning (must be set before imports)
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+# Standard library imports
+import logging
+from typing import Any, Dict, List, Tuple
+from pathlib import Path
+
+# Third-party library imports
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
+import pandas as pd
+import seaborn as sns
+from sklearn.metrics import classification_report, confusion_matrix
+from transformers import pipeline, Pipeline
+from tqdm import tqdm
 
-
-def convert_rating_to_sentiment(rating: float) -> str:
-    """
-    Convert numerical rating to sentiment category.
-
-    Args:
-        rating: Numerical rating (1-5)
-
-    Returns:
-        Sentiment category (positive, neutral, negative)
-    """
-    if rating <= 2:
-        return 'negative'
-    elif rating == 3:
-        return 'neutral'
-    else:  # rating >= 4
-        return 'positive'
+# Local application imports
+from utils import *
+from datasets import load_dataset
 
 
 class AmazonReviewsSentimentAnalyzer:
     """
-    A class for analyzing sentiment of Amazon product reviews.
+    Class for analyzing sentiment of Amazon product reviews.
 
-    This classd maintains a collection of reviews and provides methods
-    to analyze sentiment, and filter reviews.
+    Provides methods to fetch, analyze, evaluate, and visualize review
+    sentiment.
     """
+
+    PREDICTED: str = "predicted_sentiment"
+    HELPFUL: str = "helpful_vote"
 
     def __init__(self, args):
         """
         Initialize the sentiment analyzer.
 
         Args:
-            None
+            args (Any): Parsed command-line arguments or config object
+            containing:
+                - num_reviews (int): Number of reviews to fetch from the
+                    dataset.
+                - verbose (int): Verbosity level:
+                    0 = silent,
+                    1 = summary,
+                    2 = full debug output.
+                - model_id (int): Index of the model to use for sentiment
+                analysis (must correspond to index in MODELS_NAMES).
+
+        Attributes:
+            amazon_sentiment (List):
+                Original rating-based sentiment labels.
+            sentiment_analysis (List):
+                Transformer-predicted sentiment results.
+            sentiment_analyzer (Pipeline):
+                Hugging Face sentiment analysis pipeline.
+            reviews_df (pd.DataFrame):
+                DataFrame containing the loaded and processed reviews.
+            args (Any):
+                The same config object passed in for global access.
         """
-        # Original reviews full data
-        self.reviews = []
+
         # Reviews ranging from 1 to 5
         self.amazon_sentiment = []
         # Reviews based on Transformer model
@@ -57,10 +73,11 @@ class AmazonReviewsSentimentAnalyzer:
 
     def fetch_reviews(self, num_reviews: int = 100) -> List:
         """
-        Initialize the sentiment analyzer.
+        Fetches and stores Amazon product reviews from the dataset.
 
-        Args: num_reviews (int): Number of reviews to be fetched from Amazon
-        DB repository. If not provided, defaults to num_reviews = 100.
+        Args:
+            num_reviews (int): Number of reviews to be fetched from Amazon
+            DB repository. If not provided, defaults to num_reviews = 100.
 
         Returns:
             List with the selected amount of reviews.
@@ -76,48 +93,28 @@ class AmazonReviewsSentimentAnalyzer:
             num_reviews = self.args.num_reviews
 
         try:
+            # Set path based on OS
+            path = self._get_dataset_path()
             # Load dataset
-            dataset = load_dataset(
-                path='arrow',
-                data_files=r'O:\Charles\NPFL128\NPFL128_project\data'
-                           r'\raw_review_All_Beauty\0.0.0\16b76e0823d73bb'
-                           r'8cff1e9c5e3e37dbc46ae3daee380417ae141f5e67d'
-                           r'3ea8e8\amazon-reviews-2023-full.arrow'
-            )
-
-            reviews = []
-
+            dataset = self._load_dataset(path)
             # Get the specified number of reviews
-            for i in range(num_reviews):
-                reviews.append(dataset["train"][i])
-
-            unique_id = 1
-
+            reviews = self._extract_reviews(dataset, num_reviews)
             # Extract only the required features
-            filtered_reviews = []
-            for review in reviews:
-                filtered_reviews.append({
-                    'unique_id': unique_id,
-                    'user_id': review.get('user_id', ''),
-                    'title': review.get('title', ''),
-                    'text': review.get('text', ''),
-                    'rating': review.get('rating', 0),
-                    'helpful_vote': review.get('helpful_vote', 0),
-                    'verified_purchase': review.get('verified_purchase', False)
-                })
-                unique_id += 1
-
+            filtered_reviews = self._filter_reviews(reviews)
+            # Keep the filtered reviews
             self.reviews_df = pd.DataFrame(filtered_reviews)
 
-            if self.args.verbose:
-                print("--- filtered_reviews ---")
+            if self.args.verbose == 2:
+                logging.debug(print_centered("Filtered Reviews"))
                 print_formatted_dictionaries(filtered_reviews)
+
+            # Keep a copy of only ID and sentiment for later comparison
             self.set_amazon_sentiment(filtered_reviews)
 
         except Exception as e:
-            print(f"Error fetching reviews: {e}")
+            logging.error(f"Error fetching reviews: {e}")
 
-    def set_amazon_sentiment(self, reviews) -> None:
+    def set_amazon_sentiment(self, reviews: List[Dict[str, Any]]) -> None:
         """
         Sets the self.amazon_sentiment with the reviews id and their
         corresponding rating
@@ -138,30 +135,33 @@ class AmazonReviewsSentimentAnalyzer:
                 'rating': review.get('rating', 0),
             })
 
-        if self.args.verbose:
-            print("--- Amazon Sentiment ---")
+        # Only prints all details in 'debug' mode
+        if self.args.verbose == 2:
+            logging.debug(print_centered("Amazon rating"))
             print_formatted_dictionaries(self.amazon_sentiment)
 
-    def init_sentiment_analyzer(self, model_name: str = None):
+    def init_sentiment_analyzer(self, model_id: int = 0):
         """
-        Initialize the sentiment analysis model.
+        Initialize the sentiment analyzer pipeline.
 
         Args:
-            model_name: Hugging Face model for sentiment analysis
+            model_id (int): The model index to use. Defaults to 0.
+
+        Raises:
+            RuntimeError: If pipeline initialization fails.
         """
         try:
-            print("Initializing sentiment analyzer...")
-            self.sentiment_analyzer = pipeline(
-                "sentiment-analysis",
-                model=model_name,
-                tokenizer=model_name
-            )
-            print("Sentiment analyzer initialized successfully")
+            logging.info("Initializing sentiment analyzer...")
+
+            model_name = self._get_model_name(model_id)
+            self.sentiment_analyzer = self._load_pipeline(model_name, model_id)
+
+            logging.info("Sentiment analyzer initialized successfully")
 
         except Exception as e:
-            print(f"Error initializing sentiment analyzer: {e}")
-            # Fallback to default model
-            self.sentiment_analyzer = pipeline("sentiment-analysis")
+            logging.error(f"Error initializing sentiment analyzer: {e}")
+            raise RuntimeError(
+                "Failed to initialize sentiment analyzer.") from e
 
     def analyze_sentiment(self, text: str) -> Dict[str, float]:
         """
@@ -174,26 +174,16 @@ class AmazonReviewsSentimentAnalyzer:
             Dictionary with sentiment label and confidence score
         """
         if not self.sentiment_analyzer:
-            s = "cardiffnlp/twitter-roberta-base-sentiment-latest"
-            self.init_sentiment_analyzer(s)
+            # Sentiment analyzer model name
+            self.init_sentiment_analyzer()
 
         try:
             # Truncate text if too long to handle token limit
             text = text[:512]
             result = self.sentiment_analyzer(text)[0]
 
-            # Map different model outputs to standard labels
-            label_mapping = {
-                'POSITIVE': 'positive',
-                'NEGATIVE': 'negative',
-                'NEUTRAL': 'neutral',
-                'LABEL_0': 'negative',
-                'LABEL_1': 'neutral',
-                'LABEL_2': 'positive'
-            }
-
-            mapped_label = label_mapping.get(result['label'],
-                                             result['label'].lower())
+            mapped_label = LABEL_MAPPING.get(result['label'],
+                                             result['label'].capitalize())
 
             return {
                 'sentiment': mapped_label,
@@ -201,60 +191,64 @@ class AmazonReviewsSentimentAnalyzer:
             }
 
         except Exception as e:
-            print(f"Error analyzing sentiment: {e}")
+            logging.error(f"Error analyzing sentiment: {e}")
             return {'sentiment': 'neutral', 'confidence': 0.0}
+
+    def analyze_helpfulness_by_sentiment(self) -> None:
+        """
+        Analyzes the helpfulness of reviews by sentiment category.
+
+        Prints the mean, median, and count of helpful votes for each
+        predicted sentiment group.
+        """
+        if self.reviews_df is None or self.reviews_df.empty:
+            print("No data available.")
+            return
+
+        grouped = (self.reviews_df.groupby(PREDICTED)[HELPFUL].
+                   agg(['mean', 'median', 'count']))
+
+        grouped.index.name = None
+
+        print(grouped.round(2).to_string())
 
     def batch_sentiment_analysis(self) -> pd.DataFrame:
         """
         Perform sentiment analysis on all reviews in the dataset.
 
         Returns:
-            DataFrame with sentiment analysis results
+            DataFrame with sentiment analysis results.
         """
-        # Clear existing data
         self.sentiment_analysis = []
 
         if self.reviews_df is None or self.reviews_df.empty:
-            print("No reviews to analyze. Please fetch reviews first.")
+            logging.error("No reviews to analyze. Please fetch reviews first.")
             return pd.DataFrame()
 
-        print("Performing sentiment analysis on all reviews...")
+        logging.info("Performing sentiment analysis on all reviews...")
+        texts = self._combine_review_texts()
+        sentiments, confidences, results = self._analyze_batch(texts)
 
-        # Combine title and text for more comprehensive analysis
-        combined_text = self.reviews_df['title'] + " " + self.reviews_df[
-            'text']
+        self.sentiment_analysis = results
 
-        # Clear existing data
-        sentiments = []
-        confidences = []
+        if self.args.verbose == 2:
+            logging.debug("\n--- Sentiment results ---")
+            print_formatted_dictionaries(results)
 
-        for i, text in enumerate(combined_text):
-            if i % 100 == 0:
-                print(f"Processed {i}/{len(combined_text)} reviews")
-
-            result = self.analyze_sentiment(text)
-
-            self.sentiment_analysis.append({
-                'unique_id': i + 1,
-                'sentiment': result['sentiment'],
-                'confidence': result['confidence'],
-            })
-
-            sentiments.append(result['sentiment'])
-            confidences.append(result['confidence'])
-
-        if self.args.verbose:
-            print("--- sentiment_results ---")
-            print_formatted_dictionaries(self.sentiment_analysis)
-
-        # Add sentiment results to dataframe
-        self.reviews_df['predicted_sentiment'] = sentiments
+        self.reviews_df[PREDICTED] = sentiments
         self.reviews_df['sentiment_confidence'] = confidences
 
-        print("Sentiment analysis completed")
+        # Categorize helpfulness
+        self.reviews_df['helpful_category'] = pd.cut(
+            self.reviews_df[HELPFUL],
+            bins=[-1, 0, 5, 20, float('inf')],
+            labels=['None', 'Low', 'Medium', 'High']
+        )
+
+        logging.info("Sentiment analysis completed")
         return self.reviews_df
 
-    def convert_rating(self) -> List:
+    def convert_rating(self) -> List[str]:
         """
         Converts the original rating values from 1.0 to 5.0 into sentiment.
         < 3.0 => Negative
@@ -269,12 +263,13 @@ class AmazonReviewsSentimentAnalyzer:
         """
         rating_as_sentiment = []
 
+        # Converts the rating num 1-5 to sentiment
         for review in self.amazon_sentiment:
             rating_as_sentiment.append(RATING_TO_SENTIMENT[review['rating']])
 
         return rating_as_sentiment
 
-    def extract_sentiment(self) -> List:
+    def extract_sentiment(self) -> List[str]:
         """
         Extractcs only sentiment from the sentiment returned.
         Ignores the unique_id and confidence attributes to be able
@@ -309,43 +304,318 @@ class AmazonReviewsSentimentAnalyzer:
             None. Prints classification report and confusion matrix.
         """
         labels = LABELS
-        print(classification_report(y_true, y_pred, labels=labels))
-        print(confusion_matrix(y_true, y_pred, labels=labels))
+        # Prints in case of summary or debug mode
+        if self.args.verbose and self.args.verbose in [1, 2]:
+            try:
+                logging.info("Classification report")
+                print(classification_report(y_true, y_pred,
+                                            labels=labels, zero_division=0))
 
-    def plot_classification_results(self,
-            y_true: List[str],
-            y_pred: List[str],
-    ) -> None:
+                logging.info("Confusion Matrix")
+                cm = confusion_matrix(y_true, y_pred, labels=labels)
+                df_cm = pd.DataFrame(cm, index=labels, columns=labels)
+                print(df_cm, "\n")
+
+                logging.info("Helpfulness by Sentiment")
+                self.analyze_helpfulness_by_sentiment()
+
+            except ValueError as e:
+                logging.error(f"Evaluation failed: {e}")
+
+    def plot_confusion_matrix(self, y_true: List[str],
+                              y_pred: List[str],
+                              labels: List[str],
+                              save_path:
+                              str = './visualizations/Confusion_Matrix.png') \
+            -> None:
         """
-        Visualize confusion matrix and classification report.
+        Plot confusion matrix as heatmap.
 
         Args:
-            y_true (List[str]): Ground truth sentiment labels.
+            y_true (List[str]): True sentiment labels.
             y_pred (List[str]): Predicted sentiment labels.
-            labels (List[str]): List of class labels to include in the matrix.
+            labels (List[str]): List of all class labels.
+            save_path (str): File path to save the figure.
         """
-        labels = LABELS
+        model_name = MODEL_MAPPING[MODELS_NAMES[self.args.model_id]]
         cm = confusion_matrix(y_true, y_pred, labels=labels)
 
-        plt.figure(figsize=(6, 5))
+        fig = plt.figure(figsize=(6, 5))
+        plt.rcParams['font.family'] = 'DejaVu Sans'
         sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
                     xticklabels=labels, yticklabels=labels)
-        plt.xlabel("Predicted Labels")
-        plt.ylabel("True Labels")
-        plt.title("Confusion Matrix")
+        plt.xlabel("Predicted Labels", color='crimson')
+        plt.ylabel("True Labels", color='royalblue')
+        plt.title(
+            f"Sentiment Prediction vs True Labels\nModel: {model_name}",
+            fontsize=9.2)
+        plt.subplots_adjust(bottom=0.7)
         plt.tight_layout()
-        plt.show()
 
-    def compare_sentiments(self) -> Dict[str, float]:
+        self._save_fig(fig, save_path)
+
+    def plot_classification(self, y_true: List[str],
+                            y_pred: List[str],
+                            save_path: str = './visualizations'
+                                             '/Classification_Report.png') \
+            -> None:
+        """
+        Plot classification report as heatmap.
+
+        Args:
+            y_true (List[str]): True sentiment labels.
+            y_pred (List[str]): Predicted sentiment labels.
+            save_path (str): File path to save the figure.
+        """
+        # report = classification_report(y_true, y_pred, output_dict=True)
+
+        report = classification_report(
+            y_true,
+            y_pred,
+            labels=LABELS,
+            output_dict=True,
+            zero_division=0
+        )
+
+        df = pd.DataFrame(report).transpose()
+        # Enforce row order
+        df = df.loc[LABELS]
+
+        fig = plt.figure(figsize=(6, 5))
+        sns.heatmap(df.iloc[:, :-1], annot=True, cmap="YlGnBu")
+
+        plt.title("Classification Report")
+        plt.tight_layout()
+
+        self._save_fig(fig, save_path)
+
+    def plot_helpfulness_distribution(self,
+                                      save_path: str
+                                      = './visualizations/Help_Distribution'
+                                        '.png') \
+            -> None:
+        """
+        Plots a boxplot showing the distribution of helpful votes
+        across predicted sentiment categories.
+        """
+        if self.reviews_df is None or self.reviews_df.empty:
+            return
+
+        fig = plt.figure(figsize=(6, 5))
+        plt.rcParams['font.family'] = 'DejaVu Sans'
+
+        sns.boxplot(
+            data=self.reviews_df,
+            x=PREDICTED,
+            y=HELPFUL,
+            hue=PREDICTED,
+            palette='Accent',
+            legend=False
+        )
+
+        plt.title("Helpfulness Votes by Sentiment", fontsize=12)
+        plt.xlabel("Predicted Sentiment", color='crimson')
+        plt.ylabel("Helpful Votes", color='royalblue')
+
+        # Trims extreme outliers visually
+        plt.ylim(0, 20)
+        plt.tight_layout()
+
+        self._save_fig(fig, save_path)
+
+    def compare_sentiments(self) -> None:
         """
         Compare predicted sentiment with rating-based sentiment.
 
         Returns:
-            Dictionary with comparison metrics
+            None.
         """
+        labels = LABELS
 
         y_true = self.convert_rating()
         y_pred = self.extract_sentiment()
 
-        self.eval(y_pred, y_true)
-        self.plot_classification_results(y_pred, y_true)
+        # Evaluates and prints the classification report and confusion matrix
+        self.eval(y_true, y_pred)
+
+        try:
+            self.plot_confusion_matrix(y_pred, y_true, labels)
+            self.plot_classification(y_pred, y_true)
+            self.plot_helpfulness_distribution()
+
+            plt.show()
+        except ValueError as e:
+            logging.error(f"Plotting failed: {e}")
+
+    def _get_dataset_path(self) -> str:
+        """
+        Sets the path to the data files based on the user's operating system.
+
+        Returns:
+            str: Full path to the Amazon reviews dataset file,
+                 adjusted for Windows or Unix-based systems.
+        """
+        try:
+            # Set the path according to OS
+            path = (Path.cwd() / 'data' / 'raw_review_All_Beauty' / '0.0.0' /
+                    '16b76e' / 'amazon-reviews-2023-full.arrow')
+
+        except Exception as e:
+            logging.error(f"Error getting path: {e}")
+            return None
+
+        return str(path)
+
+    # ----- Internal helper methods -----
+    def _load_dataset(self, path: str) -> dict:
+        """
+        Loads the dataset from the specified path using the Hugging Face
+        `load_dataset` function.
+
+        Args:
+            path (str): Full path to the Amazon reviews dataset file.
+
+        Returns:
+            dict: A dictionary containing the dataset split(s), typically with a
+                  "train" key for access to the review data.
+        """
+        return load_dataset(
+            path='arrow',
+            data_files=path
+        )
+
+    def _extract_reviews(self, dataset: dict, num_reviews: int) \
+            -> List[Dict[str, Any]]:
+        """
+        Extracts a specified number of reviews from the dataset.
+
+        Args:
+            dataset (dict): Dictionary containing the loaded dataset.
+            num_reviews (int): Number of reviews to extract.
+
+        Returns:
+            list: A list of raw review entries.
+        """
+        return [dataset["train"][i] for i in range(num_reviews)]
+
+    def _filter_reviews(self, reviews: List[Dict[str, Any]]) \
+            -> List[Dict[str, Any]]:
+        """
+        Filters raw review entries to extract only the required fields and
+        assigns a unique ID to each review.
+
+        Args:
+            reviews (list): List of raw review entries.
+
+        Returns:
+            list: List of dictionaries containing filtered review data with keys:
+                  'unique_id', 'user_id', 'title', 'text', 'rating',
+                  'helpful_vote', 'verified_purchase'.
+        """
+        filtered_reviews = []
+        for i, review in enumerate(reviews, start=1):
+            filtered_reviews.append({
+                'unique_id': i,
+                'user_id': review.get('user_id', ''),
+                'title': review.get('title', ''),
+                'text': review.get('text', ''),
+                'rating': review.get('rating', 0),
+                'helpful_vote': review.get(HELPFUL, 0),
+                'verified_purchase': review.get('verified_purchase', False)
+            })
+        return filtered_reviews
+
+    def _combine_review_texts(self) -> List[str]:
+        """
+        Combines title and text from each review for analysis.
+
+        Returns:
+            List of concatenated review texts.
+        """
+        return (self.reviews_df['title'] + " " + self.reviews_df[
+            'text']).tolist()
+
+    def _analyze_batch(self, texts: List[str]) \
+            -> Tuple[List[str], List[float], List[dict]]:
+        """
+        Runs sentiment analysis on a batch of review texts.
+
+        Args:
+            texts (List[str]): List of combined review texts.
+
+        Returns:
+            Tuple of (sentiments, confidences, full_results).
+        """
+        sentiments, confidences, results = [], [], []
+
+        # Ensure the analyzer is initialized before tqdm
+        if not self.sentiment_analyzer:
+            self.init_sentiment_analyzer()
+
+        for i, text in enumerate(tqdm(texts, desc="Analyzing Reviews",
+                                      unit="review", leave=False)):
+            result = self.analyze_sentiment(text)
+            results.append({
+                'unique_id': i + 1,
+                'sentiment': result['sentiment'],
+                'confidence': result['confidence']
+            })
+            sentiments.append(result['sentiment'])
+            confidences.append(result['confidence'])
+
+        # Returns as a tuple
+        return (sentiments, confidences, results)
+
+    def _get_model_name(self, model_id: int) -> str:
+        """
+        Retrieve the model name from the global MODELS_NAMES list,
+        optionally overridden by self.args.
+
+        Args:
+            model_id (int): Index of the model.
+
+        Returns:
+            str: The model name string.
+        """
+        if self.args:
+            model_id = self.args.model_id
+        return MODELS_NAMES[model_id]
+
+    def _load_pipeline(self, model_name: str, model_id: int) -> Pipeline:
+        """
+        Load the sentiment analysis pipeline based on model name and ID.
+
+        Args:
+            model_name (str): The Hugging Face model name or path.
+            model_id (int): The model ID index.
+
+        Returns:
+            Pipeline: The initialized Hugging Face pipeline.
+        """
+        tf_logging.set_verbosity_error()
+
+        if model_id == 2:
+            return pipeline(
+                "sentiment-analysis",
+                model="./models/bertweet",
+                tokenizer="./models/bertweet",
+                truncation=True
+            )
+
+        return pipeline(
+            "sentiment-analysis",
+            model=model_name,
+            tokenizer=model_name
+        )
+
+    def _save_fig(self, fig: plt.Figure, save_path: str) -> None:
+        """
+        Save a matplotlib figure.
+
+        Args:
+            fig: The figure to save.
+            save_path: Path where the figure will be saved.
+        """
+        # Create the path if does not exists and saves the result
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path)
