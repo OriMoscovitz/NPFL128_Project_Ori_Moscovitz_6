@@ -47,3 +47,8 @@ python main.py --num_reviews 500 --model_id 1 --verbose 2
 | `--model_id`    | int  | Model to use (0–4, see below)               |
 | `--verbose`     | int  | Verbosity: 0=silent, 1=summary, 2=debug     |
 
+- `--num_reviews` *(int)* – Number of reviews to process (default: 100)
+- `--model_id` *(int)* – Model to use (0–4, see below)
+- `--verbose` *(int)* – Verbosity: 0=silent, 1=summary, 2=debug
+✅ Renders super clean, and works better on narrow screens too.
+
