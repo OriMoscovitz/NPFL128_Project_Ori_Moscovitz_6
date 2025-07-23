@@ -38,3 +38,11 @@ Packages:
 # Analyze 500 reviews, with DistilBERT model, in debug mode.
 python main.py --num_reviews 500 --model_id 1 --verbose 2
 ```
+
+Arguments:
+| Argument | Type | Description |
+| ----------- | ----------- | ----------- |
+| --num_reviews | int | Number of reviews to process (default: 100)
+| --model_id | int | Model to use (0-4, see below)
+| --verbose | int | Verbosity level: 0=silent, 1=summary, 2=debug
+
