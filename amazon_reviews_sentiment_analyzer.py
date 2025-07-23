@@ -1,5 +1,6 @@
 # Disable tokenizer parallelism warning (must be set before imports)
 import os
+
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # Standard library imports
@@ -205,7 +206,7 @@ class AmazonReviewsSentimentAnalyzer:
             print("No data available.")
             return
 
-        grouped = (self.reviews_df.groupby(PREDICTED)[HELPFUL].
+        grouped = (self.reviews_df.groupby(self.PREDICTED)[self.HELPFUL].
                    agg(['mean', 'median', 'count']))
 
         grouped.index.name = None
@@ -235,12 +236,12 @@ class AmazonReviewsSentimentAnalyzer:
             logging.debug("\n--- Sentiment results ---")
             print_formatted_dictionaries(results)
 
-        self.reviews_df[PREDICTED] = sentiments
+        self.reviews_df[self.PREDICTED] = sentiments
         self.reviews_df['sentiment_confidence'] = confidences
 
         # Categorize helpfulness
         self.reviews_df['helpful_category'] = pd.cut(
-            self.reviews_df[HELPFUL],
+            self.reviews_df[self.HELPFUL],
             bins=[-1, 0, 5, 20, float('inf')],
             labels=['None', 'Low', 'Medium', 'High']
         )
@@ -406,9 +407,9 @@ class AmazonReviewsSentimentAnalyzer:
 
         sns.boxplot(
             data=self.reviews_df,
-            x=PREDICTED,
-            y=HELPFUL,
-            hue=PREDICTED,
+            x=self.PREDICTED,
+            y=self.HELPFUL,
+            hue=self.PREDICTED,
             palette='Accent',
             legend=False
         )
@@ -496,6 +497,7 @@ class AmazonReviewsSentimentAnalyzer:
         Returns:
             list: A list of raw review entries.
         """
+        logging.info("###########################")
         return [dataset["train"][i] for i in range(num_reviews)]
 
     def _filter_reviews(self, reviews: List[Dict[str, Any]]) \
@@ -520,7 +522,7 @@ class AmazonReviewsSentimentAnalyzer:
                 'title': review.get('title', ''),
                 'text': review.get('text', ''),
                 'rating': review.get('rating', 0),
-                'helpful_vote': review.get(HELPFUL, 0),
+                'helpful_vote': review.get(self.HELPFUL, 0),
                 'verified_purchase': review.get('verified_purchase', False)
             })
         return filtered_reviews
