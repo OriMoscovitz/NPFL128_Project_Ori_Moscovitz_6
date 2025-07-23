@@ -10,11 +10,13 @@ This script:
 Usage:
     python main.py --num_reviews 200 --model_id 1 --verbose 2
 """
-
-from amazon_reviews_sentiment_analyzer import AmazonReviewsSentimentAnalyzer
+# Standard library imports
 import argparse
-from utils import *
 import logging
+
+# Local application imports
+from amazon_reviews_sentiment_analyzer import AmazonReviewsSentimentAnalyzer
+from utils import *
 
 # Suppress verbose logs
 tf_logging.set_verbosity_error()
