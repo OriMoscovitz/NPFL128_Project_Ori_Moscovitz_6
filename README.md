@@ -3,6 +3,8 @@
 
 ### A Python-based command-line tool that performs sentiment analysis on Amazon product reviews using state-of-the-art transformer models. It fetches real reviews, processes them, applies a sentiment model, and visualizes the results with helpfulness insights.
 
+
+
 ## 📦 Features
 
 - Load real Amazon product reviews using the HuggingFace `datasets` library.
@@ -11,6 +13,7 @@
 - Generates classification reports and confusion matrices.
 - Analyzes the impact of 'helpful vote' votes for each sentiment.
 - Visualizes helpfulness scores across sentiment categories.
+
 
 
 ## 🔧 Requirements
