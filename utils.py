@@ -123,8 +123,7 @@ def non_negative_int(value: str) -> int:
         int: The validated non-negative integer.
 
     Raises:
-        argparse.ArgumentTypeError: If the value is negative
-        or not an integer.
+        argparse.ArgumentTypeError: If the value is negative or not an integer.
     """
     ivalue = int(value)
     if ivalue < 0:
@@ -134,15 +133,15 @@ def non_negative_int(value: str) -> int:
 
 
 def print_formatted_dictionaries(
-        list_of_dicts: List[Dict[Any, Any]],
-        truncate_keys: Optional[List[str]] = None,
-        max_length: int = 120
+    list_of_dicts: List[Dict[Any, Any]],
+    truncate_keys: Optional[List[str]] = None,
+    max_length: int = 120
 ) -> None:
     """
     Prints a list of dictionaries in a readable format.
 
-    Long string values for specified keys (e.g., 'text', 'title') are
-    truncated for display purposes.
+    Long string values for specified keys (e.g., 'text', 'title') are truncated
+    for display purposes.
 
     Args:
         list_of_dicts (List[Dict[Any, Any]]):
