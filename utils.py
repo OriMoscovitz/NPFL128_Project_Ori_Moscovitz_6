@@ -36,6 +36,11 @@ LABEL_MAPPING = {
     'POS': 'Positive',
     'NEG': 'Negative',
     'NEU': 'Neutral',
+    '1 star': 'Positive',
+    '2 stars': 'Positive',
+    '3 stars': 'Neutral',
+    '4 stars': 'Negative',
+    '5 stars': 'Negative',
 }
 
 # Maps numeric star ratings to sentiment categories for evaluation purposes
