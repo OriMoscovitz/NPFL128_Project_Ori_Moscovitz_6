@@ -185,4 +185,4 @@ def print_centered(text: str) -> None:
     padding = total_length - len(text) - 2  # 2 for the '=' on both sides
     left = padding // 2
     right = padding - left
-    print("=" * left + " " + text + " " + "=" * right)
+    print(f"{'=' * left} {text} {'=' * right}")
