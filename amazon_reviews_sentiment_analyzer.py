@@ -562,7 +562,9 @@ class AmazonReviewsSentimentAnalyzer:
             result = self.analyze_sentiment(text)
             results.append({
                 'unique_id': i + 1,
-                'sentiment': result['sentiment'],
+                'sentiment': LABEL_MAPPING.get(result['sentiment'],
+                                               result[
+                                                   'sentiment'].capitalize()),
                 'confidence': result['confidence']
             })
             sentiments.append(result['sentiment'])
