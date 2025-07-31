@@ -23,23 +23,8 @@ tf_logging.set_verbosity_error()
 logging.getLogger("datasets").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("filelock").setLevel(logging.WARNING)
-logging.getLogger('matplotlib').setLevel(logging.WARNING)
-
-# Argument parser setup
-parser = argparse.ArgumentParser(
-    description="Amazon Reviews Sentiment Analyzer CLI"
-)
-
-# Define arguments
-parser.add_argument('--num_reviews', default=1000, type=non_negative_int,
-                    help='Number of raw reviews to analyze (must be ≥ 0)')
-
-parser.add_argument('--model_id', default=0, type=int,
-                    choices=range(len(MODELS_NAMES)),
-                    help='ID of the model to use for sentiment analysis')
-
-parser.add_argument('--verbose', default=1, type=int, choices=[0, 1, 2],
-                    help='Verbosity level: 0=silent, 1=summary, 2=debug')
+logging.getLogger("matplotlib").setLevel(logging.WARNING)
+logging.getLogger("PIL").setLevel(logging.WARNING)
 
 
 def main() -> None:
@@ -50,6 +35,22 @@ def main() -> None:
     - Loads and processes reviews.
     - Runs sentiment analysis and generates evaluation output.
     """
+    # Argument parser setup
+    parser = argparse.ArgumentParser(
+        description="Amazon Reviews Sentiment Analyzer CLI"
+    )
+
+    # Define arguments
+    parser.add_argument('--num_reviews', default=1000, type=non_negative_int,
+                        help='Number of raw reviews to analyze (must be ≥ 0)')
+
+    parser.add_argument('--model_id', default=0, type=int,
+                        choices=range(len(MODELS_NAMES)),
+                        help='ID of the model to use for sentiment analysis')
+
+    parser.add_argument('--verbose', default=1, type=int, choices=[0, 1, 2],
+                        help='Verbosity level: 0=silent, 1=summary, 2=debug')
+
     # Parse the arguments from the command line
     args = parser.parse_args()
     setup_logger(args.verbose)
