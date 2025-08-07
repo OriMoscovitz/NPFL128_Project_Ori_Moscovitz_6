@@ -89,3 +89,7 @@ python3 main.py --num_reviews 100 --model_id 2 --verbose 2 > sample_output.txt
 - HuggingFace Datasets
 - Scikit-learn
 - Amazon Reviews Dataset
+
+## 📚 References
+- Saif M. Mohammad. [*Challenges in Sentiment Analysis*](https://ufal.mff.cuni.cz/~hana/teaching/Mohammad2017_Chapter_ChallengesInSentimentAnalysis.pdf), 2017.
+- Juan Manuel Pérez, Juan Carlos Giudici, Franco Luque. [*pysentimiento: A Python Toolkit for Sentiment Analysis and SocialNLP tasks*](https://arxiv.org/abs/2106.09462), 2024.
