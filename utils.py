@@ -1,9 +1,7 @@
-# Standard library imports
 import argparse
 import logging
 from typing import Any, Dict, List, Optional
 
-# Third-party library imports
 from transformers import logging as tf_logging
 
 
