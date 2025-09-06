@@ -463,10 +463,16 @@ class AmazonReviewsSentimentAnalyzer:
             Path: Full path to the Amazon reviews dataset file,
                  adjusted for Windows or Unix-based systems.
         """
+
         try:
             # Set the path according to OS
-            path = (Path.cwd() / 'data' / 'raw_review_All_Beauty' / '0.0.0' /
-                    '16b76e' / 'amazon-reviews-2023-full.arrow')
+            path = Path.cwd().joinpath(
+                "data",
+                "raw_review_All_Beauty",
+                "0.0.0",
+                "16b76e",
+                "amazon-reviews-2023-full.arrow"
+            )
 
         except Exception as e:
             logging.error(f"Error getting path: {e}")
