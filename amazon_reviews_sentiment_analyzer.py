@@ -140,7 +140,7 @@ class AmazonReviewsSentimentAnalyzer:
             logging.debug(print_centered("Amazon rating"))
             print_formatted_dictionaries(self.amazon_sentiment)
 
-    def init_sentiment_analyzer(self, model_id: int = 0):
+    def init_sentiment_analyzer(self, model_id: int = 0) -> None:
         """
         Initialize the sentiment analyzer pipeline.
 
