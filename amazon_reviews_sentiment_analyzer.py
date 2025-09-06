@@ -163,7 +163,7 @@ class AmazonReviewsSentimentAnalyzer:
             raise RuntimeError(
                 "Failed to initialize sentiment analyzer.") from e
 
-    def analyze_sentiment(self, text: str) -> Dict[str, float]:
+    def analyze_sentiment(self, text: str) -> Tuple[str, float]:
         """
         Analyze sentiment of a single text.
 
@@ -188,10 +188,7 @@ class AmazonReviewsSentimentAnalyzer:
             mapped_label = LABEL_MAPPING.get(result['label'],
                                              result['label'].capitalize())
 
-            return {
-                'sentiment': mapped_label,
-                'confidence': result['score']
-            }
+            return mapped_label, result['score']
 
         except Exception as e:
             logging.error(f"Error analyzing sentiment: {e}")
@@ -558,16 +555,15 @@ class AmazonReviewsSentimentAnalyzer:
 
         for i, text in enumerate(tqdm(texts, desc="Analyzing Reviews",
                                       unit="review", leave=False)):
-            result = self.analyze_sentiment(text)
+
+            sentiment, confidence = self.analyze_sentiment(text)
             results.append({
                 'unique_id': i + 1,
-                'sentiment': LABEL_MAPPING.get(result['sentiment'],
-                                               result[
-                                                   'sentiment'].capitalize()),
-                'confidence': result['confidence']
+                'sentiment': sentiment,
+                'confidence': confidence
             })
-            sentiments.append(result['sentiment'])
-            confidences.append(result['confidence'])
+            sentiments.append(sentiment)
+            confidences.append(confidence)
 
         # Returns as a tuple
         return (sentiments, confidences, results)
