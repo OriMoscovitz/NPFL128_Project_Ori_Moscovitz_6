@@ -455,12 +455,12 @@ class AmazonReviewsSentimentAnalyzer:
         except ValueError as e:
             logging.error(f"Plotting failed: {e}")
 
-    def _get_dataset_path(self) -> str:
+    def _get_dataset_path(self) -> Path:
         """
         Sets the path to the data files based on the user's operating system.
 
         Returns:
-            str: Full path to the Amazon reviews dataset file,
+            Path: Full path to the Amazon reviews dataset file,
                  adjusted for Windows or Unix-based systems.
         """
         try:
@@ -470,18 +470,17 @@ class AmazonReviewsSentimentAnalyzer:
 
         except Exception as e:
             logging.error(f"Error getting path: {e}")
-            return None
 
-        return str(path)
+        return path
 
     # ----- Internal helper methods -----
-    def _load_dataset(self, path: str) -> dict:
+    def _load_dataset(self, path: Path) -> dict:
         """
         Loads the dataset from the specified path using the Hugging Face
         `load_dataset` function.
 
         Args:
-            path (str): Full path to the Amazon reviews dataset file.
+            path (Path): Full path to the Amazon reviews dataset file.
 
         Returns:
             dict: A dictionary containing the dataset split(s), typically with a
@@ -489,7 +488,7 @@ class AmazonReviewsSentimentAnalyzer:
         """
         return load_dataset(
             path='arrow',
-            data_files=path
+            data_files=str(path)
         )
 
     def _extract_reviews(self, dataset: dict, num_reviews: int) \
