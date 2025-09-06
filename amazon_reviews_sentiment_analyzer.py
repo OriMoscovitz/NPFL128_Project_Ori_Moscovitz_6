@@ -30,21 +30,20 @@ class AmazonReviewsSentimentAnalyzer:
     PREDICTED: str = "predicted_sentiment"
     HELPFUL: str = "helpful_vote"
 
-    def __init__(self, args):
+    def __init__(self, num_reviews, model_id, verbose):
         """
         Initialize the sentiment analyzer.
 
         Args:
-            args (Any): Parsed command-line arguments or config object
-            containing:
-                - num_reviews (int): Number of reviews to fetch from the
-                    dataset.
-                - verbose (int): Verbosity level:
-                    0 = silent,
-                    1 = summary,
-                    2 = full debug output.
-                - model_id (int): Index of the model to use for sentiment
-                analysis (must correspond to index in MODELS_NAMES).
+            num_reviews (int): Number of reviews to fetch from the dataset.
+
+            verbose (int): Verbosity level:
+                0 = silent,
+                1 = summary,
+                2 = full debug output.
+
+            model_id (int): Index of the model to use for sentiment
+            analysis (must correspond to index in MODELS_NAMES).
 
         Attributes:
             amazon_sentiment (List):
@@ -55,6 +54,13 @@ class AmazonReviewsSentimentAnalyzer:
                 Hugging Face sentiment analysis pipeline.
             reviews_df (pd.DataFrame):
                 DataFrame containing the loaded and processed reviews.
+            num_reviews (non_negative_int):
+                Number of raw reviews to analyze (Default = 1000).
+            model_id (int):
+                ID of the model to use for sentiment analysis (Default = 0).
+            verbose (int):
+                Verbosity level: 0=silent, 1=summary, 2=debug (Default = 0).
+
             args (Any):
                 The same config object passed in for global access.
         """
@@ -67,7 +73,9 @@ class AmazonReviewsSentimentAnalyzer:
         self.sentiment_analyzer = None
         self.reviews_df = None
 
-        self.args = args
+        self.num_reviews = num_reviews
+        self.model_id = model_id
+        self.verbose = verbose
 
     def fetch_reviews(self, num_reviews: int = 100
                       ) -> List[Dict[str, Union[str, float, int, bool]]]:
@@ -88,8 +96,8 @@ class AmazonReviewsSentimentAnalyzer:
                 # helpful_vote
                 # verified_purchase
         """
-        if self.args:
-            num_reviews = self.args.num_reviews
+        if self.num_reviews:
+            num_reviews = self.num_reviews
 
         try:
             # Set path based on OS
@@ -103,7 +111,7 @@ class AmazonReviewsSentimentAnalyzer:
             # Keep the filtered reviews
             self.reviews_df = pd.DataFrame(filtered_reviews)
 
-            if self.args.verbose == 2:
+            if self.verbose == 2:
                 logging.debug(print_centered("Filtered Reviews"))
                 print_formatted_dictionaries(filtered_reviews)
 
@@ -136,7 +144,7 @@ class AmazonReviewsSentimentAnalyzer:
             })
 
         # Only prints all details in 'debug' mode
-        if self.args.verbose == 2:
+        if self.verbose == 2:
             logging.debug(print_centered("Amazon rating"))
             print_formatted_dictionaries(self.amazon_sentiment)
 
@@ -178,7 +186,7 @@ class AmazonReviewsSentimentAnalyzer:
             self.init_sentiment_analyzer()
 
         try:
-            if self.args.model_id == 2:
+            if self.model_id == 2:
                 # Truncate text if too long to handle token limit (bertweet)
                 text = text[:128]
             else:
@@ -231,7 +239,7 @@ class AmazonReviewsSentimentAnalyzer:
 
         self.sentiment_analysis = results
 
-        if self.args.verbose == 2:
+        if self.verbose == 2:
             logging.debug("\n--- Sentiment results ---")
             print_formatted_dictionaries(results)
 
@@ -305,7 +313,7 @@ class AmazonReviewsSentimentAnalyzer:
         """
         labels = LABELS
         # Prints in case of summary or debug mode
-        if self.args.verbose and self.args.verbose in [1, 2]:
+        if self.verbose and self.verbose in [1, 2]:
             try:
                 logging.info("Classification report")
                 print(classification_report(y_true, y_pred,
@@ -337,7 +345,7 @@ class AmazonReviewsSentimentAnalyzer:
             labels (List[str]): List of all class labels.
             save_path (str): File path to save the figure.
         """
-        model_name = MODEL_MAPPING[MODELS_NAMES[self.args.model_id]]
+        model_name = MODEL_MAPPING[MODELS_NAMES[self.model_id]]
         cm = confusion_matrix(y_true, y_pred, labels=labels)
 
         fig = plt.figure(figsize=(6, 5))
@@ -571,7 +579,7 @@ class AmazonReviewsSentimentAnalyzer:
     def _get_model_name(self, model_id: int) -> str:
         """
         Retrieve the model name from the global MODELS_NAMES list,
-        optionally overridden by self.args.
+        optionally overridden by self.model_id.
 
         Args:
             model_id (int): Index of the model.
@@ -579,8 +587,8 @@ class AmazonReviewsSentimentAnalyzer:
         Returns:
             str: The model name string.
         """
-        if self.args:
-            model_id = self.args.model_id
+        if self.model_id:
+            model_id = self.model_id
         return MODELS_NAMES[model_id]
 
     def _load_pipeline(self, model_name: str, model_id: int) -> Pipeline:
