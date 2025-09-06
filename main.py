@@ -51,9 +51,11 @@ def main() -> None:
 
     # Parse the arguments from the command line
     args = parser.parse_args()
+    num_reviews, model_id, verbose = args.num_reviews, args.model_id, args.verbose
+
     setup_logger(args.verbose)
 
-    analyzer = AmazonReviewsSentimentAnalyzer(args)
+    analyzer = AmazonReviewsSentimentAnalyzer(num_reviews, model_id, verbose)
     analyzer.fetch_reviews()
     analyzer.batch_sentiment_analysis()
     analyzer.compare_sentiments()
