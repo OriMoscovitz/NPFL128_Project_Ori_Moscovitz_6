@@ -4,7 +4,7 @@ import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -69,7 +69,8 @@ class AmazonReviewsSentimentAnalyzer:
 
         self.args = args
 
-    def fetch_reviews(self, num_reviews: int = 100) -> List:
+    def fetch_reviews(self, num_reviews: int = 100
+                      ) -> List[Dict[str, Union[str, float, int, bool]]]:
         """
         Fetches and stores Amazon product reviews from the dataset.
 
@@ -108,6 +109,7 @@ class AmazonReviewsSentimentAnalyzer:
 
             # Keep a copy of only ID and sentiment for later comparison
             self.set_amazon_sentiment(filtered_reviews)
+            return filtered_reviews
 
         except Exception as e:
             logging.error(f"Error fetching reviews: {e}")
